@@ -23,7 +23,7 @@ Note that each configuration file contains an environment variables section at t
 
 ## Contributing
 
-See the file [CONTRIBUTING.md](https://github.com/JamitLabs/BitriseTemplates/blob/stable/CONTRIBUTING.md).
+See the file [CONTRIBUTING.md](https://github.com/JamitLabs/BitriseTemplates/blob/master/CONTRIBUTING.md).
 
 ## License
 This library is released under the [MIT License](http://opensource.org/licenses/MIT). See LICENSE for details.
