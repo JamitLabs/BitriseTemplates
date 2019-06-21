@@ -1,0 +1,106 @@
+---
+format_version: '7'
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: ios
+trigger_map:
+- push_branch: stable
+  workflow: primary
+- pull_request_source_branch: "*"
+  workflow: primary
+- tag: "*"
+  workflow: deploy
+workflows:
+  deploy:
+    before_run:
+    - _begin
+    - _prepare-build
+    - _run-tests
+    - _upload-to-connect
+    after_run:
+    - _end
+  primary:
+    before_run:
+    - _begin
+    - _run-linters
+    - _prepare-build
+    - _run-tests
+    after_run:
+    - _end
+  _begin:
+    steps:
+    - activate-ssh-key:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - git-clone: {}
+    - cache-pull: {}
+  _run-linters:
+    steps:
+    - swiftlint:
+        inputs:
+        - strict: 'yes'
+        - linting_path: "$BITRISE_SOURCE_DIR"
+    before_run: []
+  _prepare-build:
+    steps:
+    - script:
+        title: Install Dependencies using Accio
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+
+            # fail step if any command fails (-e) & debug log (-x)
+            set -e -x
+
+            # install Accio
+            brew tap JamitLabs/Accio https://github.com/JamitLabs/Accio.git
+            brew install accio
+
+            # install dependencies using Accio
+            accio install
+    - certificate-and-profile-installer: {}
+    before_run: []
+  _run-tests:
+    steps:
+    - xcode-test:
+        inputs:
+        - project_path: "$BITRISE_PROJECT_PATH"
+        - scheme: "$BITRISE_SCHEME"
+    before_run: []
+  _upload-to-connect:
+    steps:
+    - set-xcode-build-number:
+        inputs:
+        - plist_path: "$INFO_PLIST_PATH"
+    - xcode-archive:
+        inputs:
+        - project_path: "$BITRISE_PROJECT_PATH"
+        - scheme: "$BITRISE_SCHEME"
+        - export_method: "$BITRISE_EXPORT_METHOD"
+    - deploy-to-itunesconnect-application-loader:
+        title: Deploy to App Store Connect - Application Loader
+        inputs:
+        - app_password: "$APPLE_ID_PASSWORD"
+        - itunescon_user: "$APPLE_ID"
+    before_run: []
+  _end:
+    steps:
+    - deploy-to-bitrise-io: {}
+    - cache-push:
+        inputs:
+        - cache_paths: |-
+            $BITRISE_CACHE_DIR
+            ~/Library/Caches/Accio/Cache -> Package.resolved
+    before_run: []
+app:
+  envs:
+  - opts:
+      is_expand: false
+    BITRISE_PROJECT_PATH: TODO.xcodeproj
+  - opts:
+      is_expand: false
+    BITRISE_SCHEME: TODO
+  - opts:
+      is_expand: false
+    BITRISE_EXPORT_METHOD: app-store
+  - INFO_PLIST_PATH: TODO/Info.plist
+    opts:
+      is_expand: false
